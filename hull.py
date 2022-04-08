@@ -303,9 +303,9 @@ def get_points(filename):
                 continue
     return Point.from_coordinates(points)
 
-def generate_random_points(num_points, low = -1000000, high = 1000000):
-    if high < low:
-        high, low = low, high
+def generate_random_points(num_points):
+    high = num_points * 1000
+    low = -high
     num_points *= 2 # Generate x and y values for each point
     points = []
     for i in range(num_points):
