@@ -1,6 +1,7 @@
 import math
 import random
 import matplotlib.pyplot as plt
+import argparse
 
 class Point:
 
@@ -52,8 +53,10 @@ class Point:
         if self == point:
             self.__angle = 0
         else:
-            #self.__angle = math.degrees(math.atan2(point.y-self.y, point.x-self.x)) % 360
             self.__angle = math.degrees(math.atan2(self.y-point.y, self.x-point.x)) % 360
+
+    def find_3pt_angle(self, a, b):
+        self.__angle = get_3pt_angle(a, b, self)
 
     def clear_angle(self):
         self.__angle = None
@@ -75,7 +78,8 @@ class Point:
         points = []
         it = iter(coordinates)
         for x in it:
-            points.append(Point(x, next(it)))
+            pt = Point(x, next(it))
+            points.append(pt)
         return points
 
 def area2(a, b, c):
@@ -113,7 +117,7 @@ def get_partial_hulls(points, r):
         end = i + r
         if end > n:
             end = n
-        hulls.append(graham_scan(points[i:end]))
+        hulls.append(graham_scan(points[i:end].copy()))
         i = end
     return hulls
 
@@ -122,18 +126,52 @@ def get_3pt_angle(a, b, c):
     return ang + 360 if ang < 0 else ang
 
 # This is a testing method to perform finding the tangency in O(m) instead of O(log m)
-def non_bin_search_hull(hull, llast_pt, last_pt): # TODO: This doesnt work
+def find_tan(hull, llast_pt, last_pt):
     for point in hull:
         if point == last_pt:
             point.set_angle(0)
         else:
-            point.set_angle(get_3pt_angle(llast_pt, last_pt, point))
+            point.find_3pt_angle(llast_pt, last_pt)
     return max(hull)
 
+# Find the tangency point with binary search in O(log m) to each group CH
+# Set the angle of this point, as we will compare
 def bin_search_hull(hull, llast_pt, last_pt):
-    return non_bin_search_hull(hull, llast_pt, last_pt) # TODO: actually implement binary search part
-    # Find the tangency point with binary search in O(log m) to each group CH
-    # Set the angle of this point, as we will compare
+    return find_tan(hull, llast_pt, last_pt) # TODO: actually implement binary search part
+    '''
+    n = len(hull)
+    low = 0
+    high = n - 1
+    if 3 * math.log(n, 2) > 100: # Will be more checks than linear method
+        return find_tan(hull, llast_pt, last_pt)
+    while True: # TODO: make different case obvs
+        if low == high:
+            hull[low].find_3pt_angle(llast_pt, last_pt)
+            return hull[low]
+        index = low + (high - low) // 2
+        point = hull[index]
+        left_p = hull[(index - 1) % n]
+        right_p = hull[(index + 1) % n]
+        left_p.find_3pt_angle(llast_pt, last_pt)
+        right_p.find_3pt_angle(llast_pt, last_pt)
+        point.find_3pt_angle(llast_pt, last_pt)
+        if index == 0 and point > right_p:
+            return point
+        if point == last_pt:
+            return right_p # Hull is already ordered, if we get the same, return next
+        max_p = max(left_p, right_p, point)
+        if max_p == point: # Point is largest, return
+            return point
+        left_p = hull[low]
+        right_p = hull[high]
+        left_p.find_3pt_angle(llast_pt, last_pt)
+        right_p.find_3pt_angle(llast_pt, last_pt)
+        max_p = max(left_p, right_p, point)
+        if max_p == left_p: # Search left
+            high = index - 1
+        else: # Search right
+            low = index + 1
+        '''
 
 def try_hull(points, m, pt):
     n = len(points)
@@ -158,7 +196,7 @@ def try_hull(points, m, pt):
             if new_pt is None or temp_pt > new_pt:
                 new_pt = temp_pt
         if do_graph:
-            plt.plot([c_hull[-1].x, new_pt.x], [c_hull[-1].y, new_pt.y], zorder=3, color="pink")
+            plt.plot([c_hull[-1].x, new_pt.x], [c_hull[-1].y, new_pt.y], zorder=3, color="k")
             plt.draw()
             plt.pause(1)
         if new_pt == v_low:
@@ -169,15 +207,70 @@ def try_hull(points, m, pt):
 
 def chan_hull(points):
     m = 4
+    n = len(points)
     pt = None
     if do_graph:
         pt = get_coords(points)
     while True:
         res = try_hull(points, m, pt)
         if res is None:
-            m = m**2
+            m = min(m**2, n)
         else:
             return res
+
+def fast_try_hull(points, m, pt):
+    n = len(points)
+    r = math.ceil(n/m)
+    for point in points: # Remove the angles on the points
+        point.clear_angle()
+    v_low = min(points) # Get lowest point before other hulls, as this will not change
+    partial_hulls = get_partial_hulls(points, r)
+    if do_graph:
+        plt.clf() # Clear figure
+        plt.scatter(pt[0], pt[1], zorder=1, color="k") # Add points
+        for hull in partial_hulls:
+            plot_hull(hull)
+    c_hull = [v_low]
+    for i in range(m):
+        new_pt = None
+        for hull in partial_hulls:
+            if len(c_hull) == 1:
+                temp_pt = bin_search_hull(hull, c_hull[-1], c_hull[-1])
+            else:
+                temp_pt = bin_search_hull(hull, c_hull[-2], c_hull[-1])
+            if new_pt is None or temp_pt > new_pt:
+                new_pt = temp_pt
+        if do_graph:
+            plt.plot([c_hull[-1].x, new_pt.x], [c_hull[-1].y, new_pt.y], zorder=3, color="k")
+            plt.draw()
+            plt.pause(1)
+        if new_pt == v_low:
+            return [True, c_hull]
+        else:
+            c_hull.append(new_pt)
+    #flat_list = sum(partial_hulls, []) # We will discard the non CH points, so next loop looks at less points
+    flat_list = partial_hulls[0]
+    for i in range(1, len(partial_hulls)):
+        flat_list += partial_hulls[i]
+    return [False, flat_list]
+
+# This is a slight modification of Chan's algorithm. After each try_hull, if we do not complete, then we will discard
+# the points which were inside of the smaller convex hulls. We are able to do this as if a point is not a local extrema,
+# it cannot be a global extrema.
+def fast_chan_hull(points):
+    m = 4
+    n = len(points)
+    pt = None
+    if do_graph:
+        pt = get_coords(points)
+    while True:
+        res = fast_try_hull(points, m, pt)
+        if res[0]:
+            return res[1]
+        else:
+            points = res[1]
+            n = len(points)
+            m = min(m**2, n)
 
 def get_coords(points):
     x, y = [], []
@@ -193,7 +286,7 @@ def print_points(points):
         return
     print("[", end = "")
     for i in range(len_p-1):
-        print(str(points[i]) + ", ", end = "")
+        print(str(points[i]) + ", ", end="")
     print(str(points[len_p-1]) + "]")
 
 def get_points(filename):
@@ -210,7 +303,7 @@ def get_points(filename):
                 continue
     return Point.from_coordinates(points)
 
-def generate_random_points(num_points, low = -100, high = 100):
+def generate_random_points(num_points, low = -1000000, high = 1000000):
     if high < low:
         high, low = low, high
     num_points *= 2 # Generate x and y values for each point
@@ -218,26 +311,31 @@ def generate_random_points(num_points, low = -100, high = 100):
     for i in range(num_points):
         points.append(random.randint(low, high))
     return Point.from_coordinates(points)
-    #return points
 
-def plot_hull(hull):
+def plot_hull(hull, style = "dashed"):
     hull.append(hull[0]) # Add first to end to get full lines
     hl = get_coords(hull)
-    plt.plot(hl[0], hl[1], zorder=2)
+    plt.plot(hl[0], hl[1], zorder=2, linestyle=style)
     plt.draw()
     plt.pause(1)
 
-do_graph = True
+do_graph = False
 
 if __name__ == "__main__":
-    points = get_points("points.txt")
-    points = generate_random_points(1000, -1000, 1000)
-    #points = Point.from_coordinates(points)
-    chans_hull = chan_hull(points)
+    parser = argparse.ArgumentParser(description='Show a graphic display of Chan\'s convex hull algorithm.')
+    parser.add_argument('-f', '--fast', action='store_true', help="use fast_chan_hull() instead of chan_hull()")
+    args = parser.parse_args()
+    do_fast = args.fast
+    do_graph = True
+    #points = get_points("points.txt")
+    points = generate_random_points(100)
+    if do_fast:
+        chans_hull = fast_chan_hull(points)
+    else:
+        chans_hull = chan_hull(points)
     print_points(chans_hull)
-    if do_graph:
-        plt.clf() # Clear figure
-        pt = get_coords(points)
-        plt.scatter(pt[0], pt[1], zorder=1, color="k") # Add points
-        plot_hull(chans_hull)
-        plt.show()
+    plt.clf() # Clear figure
+    pt = get_coords(points)
+    plt.scatter(pt[0], pt[1], zorder=1, color="k") # Add points
+    plot_hull(chans_hull, "solid")
+    plt.show()
