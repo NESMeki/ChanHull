@@ -25,7 +25,7 @@ def time_hulls(points, do_fast):
     print(str(n) + ", " + str(g_fin) + ", " + str(c_fin) + ", " + winner)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Test Chan\'s convex hull algorithm against Graham\s.')
+    parser = argparse.ArgumentParser(description='Test Chan\'s convex hull algorithm against Graham\'s.')
     parser.add_argument('-f', '--fast', action='store_true', help="use fast_chan_hull() instead of chan_hull().")
     parser.add_argument('-p', '--points', help="minimum number of points to use", type=int, default=10000)
     parser.add_argument('-n', '--number', help="number of hulls to compute", type=int, default=100)
