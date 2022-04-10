@@ -14,7 +14,7 @@ optional arguments:
 ```
 usage: stats.py [-h] [-f] [-p POINTS] [-n NUMBER] [-s]
 
-Test Chan's convex hull algorithm against Graham\s.
+Test Chan's convex hull algorithm against Graham's.
 
 optional arguments:
   -h, --help            show this help message and exit
