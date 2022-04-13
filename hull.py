@@ -125,53 +125,51 @@ def get_3pt_angle(a, b, c):
     ang = math.degrees(math.atan2(c.y-b.y, c.x-b.x) - math.atan2(a.y-b.y, a.x-b.x))
     return ang + 360 if ang < 0 else ang
 
+def smart_angle_set(point, llast_pt, last_pt):
+    if point == last_pt:
+        point.set_angle(0)
+    else:
+        point.find_3pt_angle(llast_pt, last_pt)
+
 # This is a testing method to perform finding the tangency in O(m) instead of O(log m)
+# However, if m is small, this method will be faster.
 def find_tan(hull, llast_pt, last_pt):
     for point in hull:
-        if point == last_pt:
-            point.set_angle(0)
-        else:
-            point.find_3pt_angle(llast_pt, last_pt)
+        smart_angle_set(point, llast_pt, last_pt)
     return max(hull)
+
+def bin_find_max(hull, low, high, llast_pt, last_pt):
+    # Return current if only single element left
+    if high == low:
+        smart_angle_set(hull[low], llast_pt, last_pt)
+        return hull[low]
+    # Calculate mid
+    mid = low + (high - low) // 2
+    # Calculate mid and mid+1 angles
+    smart_angle_set(hull[mid], llast_pt, last_pt)
+    smart_angle_set(hull[mid+1], llast_pt, last_pt)
+    # Check if mid reaches 0, and if so, if it is greater than element to right
+    if(mid==0 and hull[mid]>hull[mid+1]):
+        return hull[mid]
+    # Check if mid itself is maximum element
+    smart_angle_set(hull[mid-1], llast_pt, last_pt)
+    if mid < high and hull[mid+1] < hull[mid] and mid>0 and hull[mid]>hull[mid-1]:
+        return hull[mid]
+    # Decide if we need to go to the left half or the right half
+    smart_angle_set(hull[low], llast_pt, last_pt)
+    smart_angle_set(hull[high], llast_pt, last_pt)
+    if hull[low] > hull[mid]:
+        return bin_find_max(hull, low, mid - 1, llast_pt, last_pt)
+    else:
+        return bin_find_max(hull, mid + 1, high, llast_pt, last_pt)
 
 # Find the tangency point with binary search in O(log m) to each group CH
 # Set the angle of this point, as we will compare
 def bin_search_hull(hull, llast_pt, last_pt):
-    return find_tan(hull, llast_pt, last_pt) # TODO: actually implement binary search part
-    '''
     n = len(hull)
-    low = 0
-    high = n - 1
-    if 3 * math.log(n, 2) > 100: # Will be more checks than linear method
+    if 3 * math.log(n, 2) > n: # Will be more checks than linear method
         return find_tan(hull, llast_pt, last_pt)
-    while True: # TODO: make different case obvs
-        if low == high:
-            hull[low].find_3pt_angle(llast_pt, last_pt)
-            return hull[low]
-        index = low + (high - low) // 2
-        point = hull[index]
-        left_p = hull[(index - 1) % n]
-        right_p = hull[(index + 1) % n]
-        left_p.find_3pt_angle(llast_pt, last_pt)
-        right_p.find_3pt_angle(llast_pt, last_pt)
-        point.find_3pt_angle(llast_pt, last_pt)
-        if index == 0 and point > right_p:
-            return point
-        if point == last_pt:
-            return right_p # Hull is already ordered, if we get the same, return next
-        max_p = max(left_p, right_p, point)
-        if max_p == point: # Point is largest, return
-            return point
-        left_p = hull[low]
-        right_p = hull[high]
-        left_p.find_3pt_angle(llast_pt, last_pt)
-        right_p.find_3pt_angle(llast_pt, last_pt)
-        max_p = max(left_p, right_p, point)
-        if max_p == left_p: # Search left
-            high = index - 1
-        else: # Search right
-            low = index + 1
-        '''
+    return bin_find_max(hull, 0, n-1, llast_pt, last_pt)
 
 def try_hull(points, m, pt):
     n = len(points)
@@ -248,7 +246,6 @@ def fast_try_hull(points, m, pt):
             return [True, c_hull]
         else:
             c_hull.append(new_pt)
-    #flat_list = sum(partial_hulls, []) # We will discard the non CH points, so next loop looks at less points
     flat_list = partial_hulls[0]
     for i in range(1, len(partial_hulls)):
         flat_list += partial_hulls[i]
@@ -322,13 +319,15 @@ def plot_hull(hull, style = "dashed"):
 do_graph = False
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Show a graphic display of Chan\'s convex hull algorithm.')
+    parser = argparse.ArgumentParser(description='Show a graphic display of Chan\'s convex hull algorithm')
     parser.add_argument('-f', '--fast', action='store_true', help="use fast_chan_hull() instead of chan_hull()")
+    parser.add_argument('-p', '--points', help="number of points to use, default: 100", type=int, default=100)
     args = parser.parse_args()
     do_fast = args.fast
+    num_points = args.points
     do_graph = True
     #points = get_points("points.txt")
-    points = generate_random_points(100)
+    points = generate_random_points(num_points)
     if do_fast:
         chans_hull = fast_chan_hull(points)
     else:
