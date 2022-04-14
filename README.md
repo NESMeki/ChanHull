@@ -32,3 +32,13 @@ optional arguments:
   -i INPUT, --input INPUT
                         input file of points to use instead of randomly generated points
 ```
+```
+usage: graph.py [-h] -i FILENAME
+
+Create a graph comparison of convex hull different algorithms
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i FILENAME, --input FILENAME
+                        input csv file to graph
+ ```
