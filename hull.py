@@ -322,12 +322,27 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show a graphic display of Chan\'s convex hull algorithm')
     parser.add_argument('-f', '--fast', action='store_true', help="use fast_chan_hull() instead of chan_hull()")
     parser.add_argument('-p', '--points', help="number of points to use, default: 100", type=int, default=100)
+    parser.add_argument('-i', '--input', help="input file of points to use instead of randomly generated points")
     args = parser.parse_args()
     do_fast = args.fast
     num_points = args.points
+    in_file = args.input
+    # Get or generate points
+    if in_file is not None:
+        try:
+            points = get_points(in_file)
+            if len(points) <= 3:
+                print("Need more than 3 points")
+                exit(1)
+            num_point_low = len(points)
+            num_iterations = 1
+        except:
+            print("Error opening or parsing file")
+            exit(1)
+    else:
+        points = generate_random_points(num_points)
+    # Show graph
     do_graph = True
-    #points = get_points("points.txt")
-    points = generate_random_points(num_points)
     if do_fast:
         chans_hull = fast_chan_hull(points)
     else:

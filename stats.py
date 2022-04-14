@@ -1,5 +1,3 @@
-import math
-import random
 import time
 from hull import *
 
@@ -46,20 +44,36 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--points', help="minimum number of points to use, default: 10000", type=int, default=10000)
     parser.add_argument('-n', '--number', help="number of hulls to compute, default: 100", type=int, default=100)
     parser.add_argument('-s', '--same', action='store_true', help="use the same number of points for each hull, default: False")
+    parser.add_argument('-i', '--input', help="input file of points to use instead of randomly generated points")
     args = parser.parse_args()
     do_fast = args.fast
     compare_chan = args.compare
     num_point_low = args.points
     num_iterations = args.number
     same_num = args.same
+    in_file = args.input
+
+    #Open file if possible
+    if in_file is not None:
+        try:
+            points = get_points(in_file)
+            if len(points) <= 3:
+                print("Need more than 3 points")
+                exit(1)
+            num_point_low = len(points)
+            num_iterations = 1
+        except:
+            print("Error opening or parsing file")
+            exit(1)
+    else:
+        #Generate all points at once, then use a subset of points for each run
+        points = generate_random_points(num_point_low * num_iterations)
+
     if compare_chan:
         print("Number points, Fast Chan time, Normal Chan time, Faster alg")
     else:
         print("Number points, Graham time, Chan time, Faster alg")
 
-
-    #Generate all points at once, then use a subset of points for each run
-    points = generate_random_points(num_point_low * num_iterations)
     for i in range(1, num_iterations + 1):
         if same_num:
             points_i = points[num_point_low*(i-1):num_point_low*i]
