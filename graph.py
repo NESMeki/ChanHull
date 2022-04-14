@@ -4,8 +4,8 @@ import csv
 import os
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Create a graph comparison of different algorithms')
-    parser.add_argument('-i', '--input', dest="filename", required=True, help="input file to graph")
+    parser = argparse.ArgumentParser(description='Create a graph comparison of convex hull different algorithms')
+    parser.add_argument('-i', '--input', dest="filename", required=True, help="input csv file to graph")
     args = parser.parse_args()
     in_file = args.filename
     try:
