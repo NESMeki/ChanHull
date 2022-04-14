@@ -334,8 +334,6 @@ if __name__ == "__main__":
             if len(points) <= 3:
                 print("Need more than 3 points")
                 exit(1)
-            num_point_low = len(points)
-            num_iterations = 1
         except:
             print("Error opening or parsing file")
             exit(1)
