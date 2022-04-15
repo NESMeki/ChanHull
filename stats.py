@@ -27,13 +27,13 @@ def time_chan(points):
         point.clear_angle()
     n = len(points)
     start = time.time()
-    c_hull = chan_hull(points)
-    c_fin = time.time() - start
+    f_hull = fast_chan_hull(points)
+    f_fin = time.time() - start
     for point in points: # Remove the angles on the points
         point.clear_angle()
     start = time.time()
-    f_hull = fast_chan_hull(points)
-    f_fin = time.time() - start
+    c_hull = chan_hull(points)
+    c_fin = time.time() - start
     winner = "Normal" if c_fin < f_fin else "Fast"
     print(str(n) + ", " + str(f_fin) + ", " + str(c_fin) + ", " + winner)
 
