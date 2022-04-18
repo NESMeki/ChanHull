@@ -1,7 +1,7 @@
 import math
-import random
 import matplotlib.pyplot as plt
 import argparse
+import numpy as np
 
 class Point:
 
@@ -45,6 +45,15 @@ class Point:
                 return self.x < other.x
             return False
         return self.angle < other.angle
+
+    def __gt__(self, other):
+        if self.angle is None or other.angle is None:
+            if self.y > other.y:
+                return True
+            elif self.y == other.y:
+                return self.x > other.x
+            return False
+        return self.angle > other.angle
 
     # Set angle between 2 points (as degrees)
     def find_angle(self, point):
@@ -131,6 +140,17 @@ def smart_angle_set(point, llast_pt, last_pt):
     else:
         point.find_3pt_angle(llast_pt, last_pt)
 
+def is_local_max(hull, llast_pt, last_pt, index):
+    n = len(hull)
+    pt = hull[index]
+    l_pt = hull[index-1] # If this is -1, its okay
+    r_pt = hull[(index+1) % n] # But if this is n, that is bad
+    smart_angle_set(pt, llast_pt, last_pt)
+    smart_angle_set(l_pt, llast_pt, last_pt)
+    smart_angle_set(r_pt, llast_pt, last_pt)
+    max_pt = max(pt, l_pt, r_pt)
+    return max_pt == pt
+
 # This is a testing method to perform finding the tangency in O(m) instead of O(log m)
 # However, if m is small, this method will be faster.
 def find_tan(hull, llast_pt, last_pt):
@@ -138,38 +158,107 @@ def find_tan(hull, llast_pt, last_pt):
         smart_angle_set(point, llast_pt, last_pt)
     return max(hull)
 
-def bin_find_max(hull, low, high, llast_pt, last_pt):
-    # Return current if only single element left
-    if high == low:
-        smart_angle_set(hull[low], llast_pt, last_pt)
-        return hull[low]
-    # Calculate mid
-    mid = low + (high - low) // 2
-    # Calculate mid and mid+1 angles
-    smart_angle_set(hull[mid], llast_pt, last_pt)
-    smart_angle_set(hull[mid+1], llast_pt, last_pt)
-    # Check if mid reaches 0, and if so, if it is greater than element to right
-    if(mid==0 and hull[mid]>hull[mid+1]):
-        return hull[mid]
-    # Check if mid itself is maximum element
-    smart_angle_set(hull[mid-1], llast_pt, last_pt)
-    if mid < high and hull[mid+1] < hull[mid] and mid>0 and hull[mid]>hull[mid-1]:
-        return hull[mid]
-    # Decide if we need to go to the left half or the right half
+'''
+def bin_tan(hull, index, search, llast_pt, last_pt):
+    n = len(hull)
+    pt = hull[index]
+    l_pt = hull[(index-1) % n]
+    r_pt = hull[(index+1) % n]
+    smart_angle_set(pt, llast_pt, last_pt)
+    smart_angle_set(l_pt, llast_pt, last_pt)
+    smart_angle_set(r_pt, llast_pt, last_pt)
+    #check if any of these points were the last, in which case simply return next
+    if l_pt == last_pt:
+        l_pt = hull[(index-2) % n]
+        smart_angle_set(l_pt, llast_pt, last_pt)
+        return l_pt
+    elif pt == last_pt:
+        return l_pt
+    elif r_pt == last_pt:
+        return pt
+    max_pt = max(pt, l_pt, r_pt)
+    if search == 1:
+        return max_pt
+    if max_pt == pt:
+        return pt
+    elif max_pt == l_pt:
+        return bin_tan(hull, (index - search) % n, (search+1)//2, llast_pt, last_pt)
+    return bin_tan(hull, (index + search) % n, (search+1)//2, llast_pt, last_pt)
+'''
+
+def bin_roated(hull, low, high, llast_pt, last_pt):
+    # If there is only one element left
     smart_angle_set(hull[low], llast_pt, last_pt)
+    if high == low:
+        return hull[low]
+
+    # Find mid
+    mid = low + ((high - low) // 2)
+    # Check if mid reaches 0 ,it is greater than next element or not
+    if is_local_max(hull, llast_pt, last_pt, mid):
+        return hull[mid]
+
+    # Decide whether we need to go to the left half or the right half
+    l_max = max(hull[low], hull[mid-1])
     smart_angle_set(hull[high], llast_pt, last_pt)
-    if hull[low] > hull[mid]:
-        return bin_find_max(hull, low, mid - 1, llast_pt, last_pt)
+    r_max = max(hull[mid+1], hull[high])
+    if l_max > r_max:
+        return bin_roated(hull, low, mid - 1, llast_pt, last_pt) # Left
     else:
+        return bin_roated(hull, mid + 1, high, llast_pt, last_pt) # Right
+
+''''
+def bin_find_max(hull, low, high, llast_pt, last_pt):
+    # Check if high/low is last point
+    smart_angle_set(hull[low], llast_pt, last_pt)
+    if hull[low] == last_pt:
+        smart_angle_set(hull[(low - 1) % len(hull)], llast_pt, last_pt)
+        return hull[(low - 1) % len(hull)]
+    smart_angle_set(hull[high], llast_pt, last_pt)
+    if hull[high] == last_pt:
+        smart_angle_set(hull[(high - 1) % len(hull)], llast_pt, last_pt)
+        return hull[(high - 1) % len(hull)]
+    # Small point set, just do linear
+    if (high - low + 1) <= 3:
+        return find_tan(hull[low:high+1], llast_pt, last_pt)
+    mid = (low + high)//2
+    smart_angle_set(hull[mid], llast_pt, last_pt)
+    smart_angle_set(hull[mid-1], llast_pt, last_pt)
+    smart_angle_set(hull[mid+1], llast_pt, last_pt)
+    if hull[mid+1] == last_pt:
+        return hull[mid]
+    if hull[mid] == last_pt:
+        return hull[mid-1]
+    if hull[mid-1] == last_pt:
+        smart_angle_set(hull[(mid - 2) % len(hull)], llast_pt, last_pt)
+        return hull[(mid - 2) % len(hull)]
+    # See if mid is local max, return if so
+    if is_local_max(hull, llast_pt, last_pt, mid):
+        return hull[mid]
+
+    # If arr[mid] is greater than the next element and smaller than the previous
+    # element then maximum lies on left side of mid
+    if hull[mid] > hull[mid + 1] and hull[mid] < hull[mid - 1]:
+        return bin_find_max(hull, low, mid - 1, llast_pt, last_pt)
+    else: # when arr[mid] is greater than arr[mid-1] and smaller than arr[mid+1]
         return bin_find_max(hull, mid + 1, high, llast_pt, last_pt)
+'''
 
 # Find the tangency point with binary search in O(log m) to each group CH
 # Set the angle of this point, as we will compare
 def bin_search_hull(hull, llast_pt, last_pt):
+    #return find_tan(hull, llast_pt, last_pt)
     n = len(hull)
-    if 3 * math.log(n, 2) > n: # Will be more checks than linear method
+    if 5 * math.log(n, 2) > n: # Will be more checks than linear method
         return find_tan(hull, llast_pt, last_pt)
-    return bin_find_max(hull, 0, n-1, llast_pt, last_pt)
+    if is_local_max(hull, llast_pt, last_pt, 0):
+        return hull[0]
+    elif is_local_max(hull, llast_pt, last_pt, n-1):
+        return hull[n-1]
+    else:
+        #bin_p = bin_find_max(hull, 0, n-1, llast_pt, last_pt)
+        #angles.append(bin_p.angle)
+        return bin_roated(hull, 0, n-1, llast_pt, last_pt)
 
 def try_hull(points, m, pt):
     n = len(points)
@@ -303,15 +392,14 @@ def get_points(filename):
 def generate_random_points(num_points):
     high = num_points * 1000
     low = -high
-    num_points *= 2 # Generate x and y values for each point
-    points = []
-    for i in range(num_points):
-        points.append(random.randint(low, high))
+    num_points *= 2
+    points = np.random.randint(low, high, size=num_points)
     return Point.from_coordinates(points)
 
 def plot_hull(hull, style = "dashed"):
-    hull.append(hull[0]) # Add first to end to get full lines
-    hl = get_coords(hull)
+    hull_plot = hull.copy()
+    hull_plot.append(hull[0]) # Add first to end to get full lines
+    hl = get_coords(hull_plot)
     plt.plot(hl[0], hl[1], zorder=2, linestyle=style)
     plt.draw()
     plt.pause(1)
