@@ -100,8 +100,18 @@ def left_on(a, b, c):
 def left(a, b, c):
     return area2(a, b, c) > 0
 
+def find_v_low(points): #find min even if angles are set
+    v_low = points[0]
+    for i in range(1, len(points)):
+        pt_i = points[i]
+        if pt_i.y < v_low.y:
+            v_low = pt_i
+        elif pt_i.y == v_low.y and pt_i.x < v_low.x:
+            v_low = pt_i
+    return v_low
+
 def graham_scan(points):
-    v_low = min(points) # Find min y point
+    v_low = find_v_low(points) # Find min y point, use this method so we dont need to clear angles
     for point in points:
         point.find_angle(v_low) # Compute angle about v_low
     points.sort() # Sort by angle about v_low
@@ -126,7 +136,7 @@ def get_partial_hulls(points, r):
         end = i + r
         if end > n:
             end = n
-        hulls.append(graham_scan(points[i:end].copy()))
+        hulls.append(graham_scan(points[i:end])) #removed .copy()
         i = end
     return hulls
 
@@ -201,13 +211,12 @@ def bin_search_hull(hull, llast_pt, last_pt):
         return bin_roated(hull, 0, n-1, llast_pt, last_pt)
     '''
 
-def try_hull(points, m, pt, fast):
+def try_hull(points, m, pt, v_low, discard):
     n = len(points)
     r = math.ceil(n/m)
-    for point in points: # Remove the angles on the points
-        point.clear_angle()
-    v_low = min(points) # Get lowest point before other hulls, as this will not change
-    partial_hulls = get_partial_hulls(points, r)
+    #for point in points: # Remove the angles on the points, needed for grahams
+        #point.clear_angle()
+    partial_hulls = get_partial_hulls(points, m) #apparnetly the sets should be of size m, but this slow
     if do_graph:
         plt.clf() # Clear figure
         plt.scatter(pt[0], pt[1], zorder=1, color="k") # Add points
@@ -228,12 +237,12 @@ def try_hull(points, m, pt, fast):
             plt.draw()
             plt.pause(1)
         if new_pt == v_low:
-            if fast:
+            if discard:
                 return [True, c_hull]
             return c_hull
         else:
             c_hull.append(new_pt)
-    if fast:
+    if discard:
         flat_list = partial_hulls[0]
         for i in range(1, len(partial_hulls)):
             flat_list += partial_hulls[i]
@@ -241,13 +250,16 @@ def try_hull(points, m, pt, fast):
     return None
 
 def chan_hull(points):
-    m = 4
+    m = 256 #This needs to increase as the number of points increases, how, idk
+    if len(points) <= 100:
+        m = 4
     n = len(points)
     pt = None
+    v_low = min(points) # Get lowest point before other hulls, as this will not change
     if do_graph:
         pt = get_coords(points)
     while True:
-        res = try_hull(points, m, pt, False)
+        res = try_hull(points, m, pt, v_low, False)
         if res is None:
             m = min(m**2, n)
         else:
@@ -256,13 +268,14 @@ def chan_hull(points):
 # This is a slight modification of Chan's algorithm. After each try_hull, if we do not complete, then we will discard
 # the points which were inside of the smaller convex hulls. We are able to do this as if a point is not a local extrema,
 # it cannot be a global extrema.
-def fast_chan_hull(points):
-    m = 4
+def modified_chan_hull(points):
+    m = 256
     pt = None
+    v_low = min(points) # Get lowest point before other hulls, as this will not change
     if do_graph:
         pt = get_coords(points)
     while True:
-        res = try_hull(points, m, pt, True)
+        res = try_hull(points, m, pt, v_low, True)
         if res[0]:
             return res[1]
         else:
@@ -321,11 +334,11 @@ do_graph = False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Show a graphic display of Chan\'s convex hull algorithm')
-    parser.add_argument('-f', '--fast', action='store_true', help="use fast_chan_hull() instead of chan_hull()")
+    parser.add_argument('-m', '--modified', action='store_true', help="use modified_chan_hull() instead of chan_hull()")
     parser.add_argument('-p', '--points', help="number of points to use, default: 100", type=int, default=100)
     parser.add_argument('-i', '--input', help="input file of points to use instead of randomly generated points")
     args = parser.parse_args()
-    do_fast = args.fast
+    do_modified = args.modified
     num_points = args.points
     in_file = args.input
     # Get or generate points
@@ -342,8 +355,8 @@ if __name__ == "__main__":
         points = generate_random_points(num_points)
     # Show graph
     do_graph = True
-    if do_fast:
-        chans_hull = fast_chan_hull(points)
+    if do_modified:
+        chans_hull = modified_chan_hull(points)
     else:
         chans_hull = chan_hull(points)
     print_points(chans_hull)
