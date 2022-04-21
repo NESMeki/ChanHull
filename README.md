@@ -16,7 +16,7 @@ optional arguments:
  ```
 
 ```
-usage: stats.py [-h] [-f] [-c] [-p POINTS] [-n NUMBER] [-s] [-i INPUT]
+usage: stats.py [-h] [-f] [-c] [-p POINTS] [-n NUMBER] [-s] [-i INPUT] [-o OUTPUT]
 
 Test Chan's convex hull algorithm against Graham's
 
