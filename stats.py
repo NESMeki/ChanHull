@@ -11,9 +11,6 @@ def time_hulls(points, do_modified):
     else:
         c_hull = chan_hull(points)
     c_fin = time.time() - start
-    if len(c_hull) > 256:
-        plot_hull(chans_hull, "solid")
-        plt.show()
     for point in points: # Remove the angles on the points
         point.clear_angle()
     start = time.time()
@@ -114,7 +111,7 @@ if __name__ == "__main__":
         out_file = open("out.csv", 'w')
 
     if compare_chan:
-        res = "Number points, Fast Chan time, Normal Chan time, Faster alg"
+        res = "Number points, Modified Chan time, Normal Chan time, Faster alg"
     else:
         res = "Number points, Graham time, Chan time, Faster alg"
     print(res)

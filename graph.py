@@ -22,11 +22,9 @@ if __name__ == "__main__":
         title = (in_file.split(".", 1)[0]).title()
         plt.legend()
         plt.title(title)
-        #plt.locator_params(axis='y', nbins=10)
-        #plt.locator_params(axis='x', nbins=10)
         plt.xlabel("Number of points")
         plt.ylabel("Time (seconds)")
-        plt.savefig(os.path.join(os.curdir, title.lower() + ".pdf"), transparent=True)
+        plt.savefig(os.path.join(os.curdir, title.lower() + ".png"), transparent=True)
     except:
         print("Error opening or parsing file")
         exit(1)

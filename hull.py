@@ -100,7 +100,7 @@ def left_on(a, b, c):
 def left(a, b, c):
     return area2(a, b, c) > 0
 
-def find_v_low(points): #find min even if angles are set
+def find_v_low(points): # Find min even if angles are set
     v_low = points[0]
     for i in range(1, len(points)):
         pt_i = points[i]
@@ -119,7 +119,7 @@ def graham_scan(points):
     if len_p <= 3:
         return points
     pos = 2
-    hull = points[0:2] # Initalize stack as first 2 points
+    hull = points[0:2] # Initialize stack as first 2 points
     while pos < len_p:
         cur = points[pos]
         while not left_on(hull[-2], hull[-1], cur): # POP until left
@@ -136,7 +136,7 @@ def get_partial_hulls(points, r):
         end = i + r
         if end > n:
             end = n
-        hulls.append(graham_scan(points[i:end])) #removed .copy()
+        hulls.append(graham_scan(points[i:end]))
         i = end
     return hulls
 
@@ -192,31 +192,10 @@ def bin_roated(hull, low, high, llast_pt, last_pt):
 def bin_search_hull(hull, llast_pt, last_pt):
     n = len(hull)
     return bin_roated(hull, 0, n-1, llast_pt, last_pt)
-    ''' # Testing code to verify angle is correct 
-    bin_p = bin_roated(hull, 0, n-1, llast_pt, last_pt)
-    lin_p = find_tan(hull, llast_pt, last_pt)
-    if bin_p != lin_p:
-        print("PANIC")
-    return bin_p
-    # Testing code to try and optimize
-    if 5 * math.log(n, 2) > n: # Will be more checks than linear method
-        return find_tan(hull, llast_pt, last_pt)
-    if is_local_max(hull, llast_pt, last_pt, 0):
-        return hull[0]
-    elif is_local_max(hull, llast_pt, last_pt, n-1):
-        return hull[n-1]
-    else:
-        #bin_p = bin_find_max(hull, 0, n-1, llast_pt, last_pt)
-        #angles.append(bin_p.angle)
-        return bin_roated(hull, 0, n-1, llast_pt, last_pt)
-    '''
 
 def try_hull(points, m, pt, v_low, discard):
     n = len(points)
-    r = math.ceil(n/m)
-    #for point in points: # Remove the angles on the points, needed for grahams
-        #point.clear_angle()
-    partial_hulls = get_partial_hulls(points, m) #apparnetly the sets should be of size m, but this slow
+    partial_hulls = get_partial_hulls(points, m)
     if do_graph:
         plt.clf() # Clear figure
         plt.scatter(pt[0], pt[1], zorder=1, color="k") # Add points
@@ -250,8 +229,8 @@ def try_hull(points, m, pt, v_low, discard):
     return None
 
 def chan_hull(points):
-    m = 256 #This needs to increase as the number of points increases, how, idk
-    if len(points) <= 100:
+    m = 256
+    if len(points) <= 256:
         m = 4
     n = len(points)
     pt = None
@@ -270,6 +249,8 @@ def chan_hull(points):
 # it cannot be a global extrema.
 def modified_chan_hull(points):
     m = 256
+    if len(points) <= 256:
+        m = 4
     pt = None
     v_low = min(points) # Get lowest point before other hulls, as this will not change
     if do_graph:
